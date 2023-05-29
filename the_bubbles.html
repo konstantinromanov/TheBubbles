@@ -71,6 +71,7 @@
         const cheatCursorSize = 15;
         const cheatCursorColor = "red";
         const cheatCursorWeight = 1.5;
+        let btn = document.getElementById("cheatModeBtn");
 
         for (let i = 0; i < numberOfBubbles; i++) {
 
@@ -197,8 +198,6 @@
             requestAnimationFrame(animateBubbles);
         }
 
-        
-
         canvas.addEventListener("click", function(event){
            
             const rect = canvas.getBoundingClientRect();
@@ -223,9 +222,7 @@
                 }
             });
         });       
-
-        let btn = document.getElementById("cheatModeBtn");
-
+        const heading = document.querySelector(".heading h1");
         btn.addEventListener("click", function(){            
             
             if (cheatModeIsOn) {
@@ -233,14 +230,16 @@
                 cheatModeIsOn = false;
                 btn.classList.remove("btn-red");
                 btn.classList.add("btn-blue");
+                heading.textContent = "The Bubbles";
             } else {
                 btn.textContent = "Cheat Mode is On";
                 cheatModeIsOn = true;
                 btn.classList.remove("btn-blue");
-                btn.classList.add("btn-red");
+                btn.classList.add("btn-red");                
+                heading.textContent = "Fire in the hole!"
             }            
-        });       
-
+        });              
+        
         animateBubbles();
         
     </script>
