@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+
+<head>
+    <title>Canvas example</title>
+    <style>
+
+        canvas {
+            border: 1px solid black;
+            cursor: crosshair;
+        }
+
+        .hide-cursor {
+            cursor: none;
+        }
+
+        .container {
+            display: flex;
+            justify-content: center;            
+            align-items: stretch;
+        }
+
+        .heading {
+            text-align: center;
+        }
+
+        #cheatModeBtn {
+            margin: 10px;
+            padding: 10px;            
+            color: white;
+        }
+
+        .btn-red {
+            background-color: rgb(247, 54, 54);
+        }
+
+        .btn-blue {
+            background-color: rgb(0, 102, 255);
+        }
+
+    </style>
+</head>
+<body>
+    <div class="heading"><h1>The Bubbles</h1></div>
+    <div class="container">
+        <canvas id="myCanvas" width="800" height="400"></canvas>
+    </div>
+    <div class="container">
+        <button id="cheatModeBtn" class="btn-blue">
+            Cheat Mode
+        </button>
+    </div>
+   
+    <script>
+
+        let canvas = document.getElementById("myCanvas");
+        let context = canvas.getContext("2d");        
+        let showBoom = false;
+        let textX = 0;
+        let textY = 0;
+        const numberOfBubbles = 30;
+        let bubbles = [];
+        let score = 0;
+        let lastScore = 0;
+        let timeInSeconds = 0;
+        let cursorPosition = {
+            x: 400,
+            y: 200
+        }
+        let cheatModeIsOn = false;
+        let timerInterval = setInterval(() => timeInSeconds++, 1000);
+        const cheatCursorSize = 15;
+        const cheatCursorColor = "red";
+        const cheatCursorWeight = 1.5;
+
+        for (let i = 0; i < numberOfBubbles; i++) {
+
+            const radius = Math.random() * 10 + 5;
+            const speed = Math.random() * 0.1 + 0.2;
+
+            let bubble = {
+                radius: radius,
+                x: Math.random() * canvas.width,
+                y: Math.random() * (canvas.height + radius) + (canvas.height + radius),
+                speed: speed,
+                innerColor: "rgba(0, 0, 255, 1)",
+                outerColor: "rgba(0, 0, 255, 0)",
+                score: Math.floor(50 / radius * (2 * speed))
+            }            
+            
+            bubbles.push(bubble);    
+        }
+
+        function resetBubble(b) {
+            b.x = Math.random() * canvas.width;
+            b.y = canvas.height + b.radius;
+        }
+
+        function drawBoom(){
+            context.fillStyle = "red";
+            context.font = "bold 24px Arial";
+            context.textAlign = "center";
+            context.fillText(`Boom! +${lastScore}`, textX, textY);
+        }
+
+        function drawScore(){
+            context.fillStyle = "blue";
+            context.font = "bold 12px Arial";
+            context.textAlign = "left";
+            context.fillText(`Score: ${score}`, canvas.width - 100, canvas.height - 20);
+            context.fillText(`Time: ${timeInSeconds}`, canvas.width - 96, canvas.height - 5);
+        }
+        
+        function boomScore(b) {
+            lastScore = b.score;
+            score += lastScore;
+        }
+
+        function moveCursorTo(x, y) {
+            
+            context.strokeStyle = cheatCursorColor;
+            context.lineWidth = cheatCursorWeight;
+
+            context.beginPath();
+            context.moveTo(x - cheatCursorSize, y);
+            context.lineTo(x + cheatCursorSize, y);
+            context.stroke();
+
+            context.beginPath();
+            context.moveTo(x, y - cheatCursorSize);
+            context.lineTo(x, y + cheatCursorSize);
+            context.stroke();            
+        }
+
+        function findClosestBubble() {
+                      
+            let closestBubble = bubbles[0];
+            let closestDist = Number.MAX_VALUE;
+
+            bubbles.forEach(function(b){
+
+                const dist = Math.sqrt(Math.pow(cursorPosition.x - b.x, 2) + Math.pow(cursorPosition.y - b.y, 2));
+                // check if buble is visible in canvas by y coordinate
+                if (b.y < canvas.height && dist < closestDist) {
+                    closestDist = dist;
+                    closestBubble = b;
+                }
+            });
+
+            return closestBubble;
+        }
+
+        function animateBubbles() {
+
+            context.clearRect(0, 0, canvas.width, canvas.height);
+
+            if (cheatModeIsOn) {
+                canvas.classList.add("hide-cursor");
+            } else {
+                canvas.classList.remove("hide-cursor");
+            }
+
+            bubbles.forEach(function(b){
+                if (b.y + b.radius < 0) {
+                    resetBubble(b);
+                }
+            });           
+          
+            bubbles.forEach(function(b){
+
+                const gradient = context.createRadialGradient(
+                    b.x, b.y, 0, 
+                    b.x - 20, b.y - 20, 45);
+
+                gradient.addColorStop(1, b.innerColor);
+                gradient.addColorStop(0, b.outerColor);
+
+                b.y -= b.speed;
+                
+                context.beginPath();
+                context.arc(b.x, b.y, b.radius, 0, 2 * Math.PI);
+                context.fillStyle = gradient;
+                context.fill();    
+            });     
+            
+            if(showBoom) {
+                drawBoom()
+            }
+            const bubble = findClosestBubble();            
+            cursorPosition.x = bubble.x;
+            cursorPosition.y = bubble.y;
+
+            if (cheatModeIsOn) {
+                moveCursorTo(bubble.x, bubble.y);
+            }
+            
+            drawScore();
+            requestAnimationFrame(animateBubbles);
+        }
+
+        
+
+        canvas.addEventListener("click", function(event){
+           
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = cheatModeIsOn ? cursorPosition.x : event.clientX - rect.left;
+            const mouseY = cheatModeIsOn ? cursorPosition.y : event.clientY - rect.top;
+              
+            bubbles.forEach(function(b){
+
+                const dist = Math.sqrt(Math.pow(mouseX - b.x, 2) + Math.pow(mouseY - b.y, 2));
+
+                if (dist <= b.radius) {
+                    
+                    resetBubble(b);
+                    boomScore(b);
+                    showBoom = true;
+                    textX = mouseX;
+                    textY = mouseY;
+
+                    setTimeout(() => {
+                        showBoom = false;
+                    }, 1000);
+                }
+            });
+        });       
+
+        let btn = document.getElementById("cheatModeBtn");
+
+        btn.addEventListener("click", function(){            
+            
+            if (cheatModeIsOn) {
+                btn.textContent = "Cheat Mode is Off";
+                cheatModeIsOn = false;
+                btn.classList.remove("btn-red");
+                btn.classList.add("btn-blue");
+            } else {
+                btn.textContent = "Cheat Mode is On";
+                cheatModeIsOn = true;
+                btn.classList.remove("btn-blue");
+                btn.classList.add("btn-red");
+            }            
+        });       
+
+        animateBubbles();
+        
+    </script>
+</body>
